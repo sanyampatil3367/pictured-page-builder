@@ -4,7 +4,8 @@ import { AiOrb } from "./shell";
 
 type Step = "capture" | "analyzing" | "result" | "manual" | "done";
 
-const RESULTS = [
+type Res = { issue: string; category: string; priority: string; worker: string; confidence: number; action: string };
+const RESULTS: [Res, Res] = [
   { issue: "Broken ceiling fan", category: "Electrical", priority: "Medium", worker: "Electrician", confidence: 94, action: "Replace capacitor and test motor." },
   { issue: "Unclear", category: "—", priority: "—", worker: "—", confidence: 41, action: "" },
 ];
@@ -12,7 +13,7 @@ const RESULTS = [
 export function ReportFlow({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<Step>("capture");
   const [img, setImg] = useState<string | null>(null);
-  const [res, setRes] = useState(RESULTS[0]);
+  const [res, setRes] = useState<Res>(RESULTS[0]);
   const fileRef = useRef<HTMLInputElement>(null);
   const camRef = useRef<HTMLInputElement>(null);
 

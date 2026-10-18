@@ -74,7 +74,7 @@ function Twin() {
       </div>
     );
 
-  const floor = b.floors[f];
+  const floor = b.floors[f] ?? b.floors[0]!;
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title={b.name} sub={`${b.id} · ${b.kind}`} right={
