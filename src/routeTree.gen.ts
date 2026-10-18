@@ -10,33 +10,128 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SustainabilityRouteImport } from './routes/sustainability'
+import { Route as TwinRouteImport } from './routes/twin'
+import { Route as WorkerRouteImport } from './routes/worker'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminEnergyRouteImport } from './routes/admin.energy'
+import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SustainabilityRoute = SustainabilityRouteImport.update({
+  id: '/sustainability',
+  path: '/sustainability',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TwinRoute = TwinRouteImport.update({
+  id: '/twin',
+  path: '/twin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkerRoute = WorkerRouteImport.update({
+  id: '/worker',
+  path: '/worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminEnergyRoute = AdminEnergyRouteImport.update({
+  id: '/admin/energy',
+  path: '/admin/energy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminInventoryRoute = AdminInventoryRouteImport.update({
+  id: '/admin/inventory',
+  path: '/admin/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/reports': typeof ReportsRoute
+  '/sustainability': typeof SustainabilityRoute
+  '/twin': typeof TwinRoute
+  '/worker': typeof WorkerRoute
+  '/admin/energy': typeof AdminEnergyRoute
+  '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/reports': typeof ReportsRoute
+  '/sustainability': typeof SustainabilityRoute
+  '/twin': typeof TwinRoute
+  '/worker': typeof WorkerRoute
+  '/admin/energy': typeof AdminEnergyRoute
+  '/admin/inventory': typeof AdminInventoryRoute
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/reports': typeof ReportsRoute
+  '/sustainability': typeof SustainabilityRoute
+  '/twin': typeof TwinRoute
+  '/worker': typeof WorkerRoute
+  '/admin/energy': typeof AdminEnergyRoute
+  '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/reports'
+    | '/sustainability'
+    | '/twin'
+    | '/worker'
+    | '/admin/energy'
+    | '/admin/inventory'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/reports'
+    | '/sustainability'
+    | '/twin'
+    | '/worker'
+    | '/admin/energy'
+    | '/admin/inventory'
+    | '/admin'
+  id:
+    | '__root__'
+    | '/'
+    | '/reports'
+    | '/sustainability'
+    | '/twin'
+    | '/worker'
+    | '/admin/energy'
+    | '/admin/inventory'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ReportsRoute: typeof ReportsRoute
+  SustainabilityRoute: typeof SustainabilityRoute
+  TwinRoute: typeof TwinRoute
+  WorkerRoute: typeof WorkerRoute
+  AdminEnergyRoute: typeof AdminEnergyRoute
+  AdminInventoryRoute: typeof AdminInventoryRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +143,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sustainability': {
+      id: '/sustainability'
+      path: '/sustainability'
+      fullPath: '/sustainability'
+      preLoaderRoute: typeof SustainabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/twin': {
+      id: '/twin'
+      path: '/twin'
+      fullPath: '/twin'
+      preLoaderRoute: typeof TwinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/worker': {
+      id: '/worker'
+      path: '/worker'
+      fullPath: '/worker'
+      preLoaderRoute: typeof WorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/energy': {
+      id: '/admin/energy'
+      path: '/admin/energy'
+      fullPath: '/admin/energy'
+      preLoaderRoute: typeof AdminEnergyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/inventory': {
+      id: '/admin/inventory'
+      path: '/admin/inventory'
+      fullPath: '/admin/inventory'
+      preLoaderRoute: typeof AdminInventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ReportsRoute: ReportsRoute,
+  SustainabilityRoute: SustainabilityRoute,
+  TwinRoute: TwinRoute,
+  WorkerRoute: WorkerRoute,
+  AdminEnergyRoute: AdminEnergyRoute,
+  AdminInventoryRoute: AdminInventoryRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
