@@ -23,7 +23,7 @@ function greeting() {
 function StudentHome() {
   const [open, setOpen] = useState(false);
   const [hello, setHello] = useState("Hello");
-  useEffect(() => setHello(greeting()), []);
+  useEffect(() => { setHello(greeting()); }, []);
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-2xl flex-col items-center justify-center text-center">
       <p className="text-sm text-muted-foreground">{hello}, Ratnesh.</p>

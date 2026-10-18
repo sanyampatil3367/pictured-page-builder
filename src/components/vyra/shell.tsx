@@ -82,7 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [notif, setNotif] = useState(false);
   const { dark, toggle } = useTheme();
 
-  useEffect(() => setDrawer(false), [pathname]);
+  useEffect(() => { setDrawer(false); }, [pathname]);
 
   return (
     <ShellCtx.Provider value={{ aiOpen, setAiOpen, role }}>
@@ -230,8 +230,8 @@ function AiPanel({ open, onClose, role }: { open: boolean; onClose: () => void; 
   const [msgs, setMsgs] = useState<{ me: boolean; t: string }[]>([]);
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => setMsgs([{ me: false, t: ROLE_HINT[role].greet }]), [role]);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
+  useEffect(() => { setMsgs([{ me: false, t: ROLE_HINT[role].greet }]); }, [role]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
   const send = (t: string) => {
     if (!t.trim()) return;
     setMsgs((m) => [...m, { me: true, t }]);
