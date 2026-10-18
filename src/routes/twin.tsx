@@ -15,7 +15,7 @@ export const Route = createFileRoute("/twin")({
   component: Twin,
 });
 
-type Room = { id: string; name: string; x: number; y: number; w: number; h: number; status?: "issue" | "waste" };
+type Room = { id: string; name: string; x: number; y: number; w: number; h: number; status?: "issue" | "waste" | undefined };
 type Floor = { id: string; name: string; rooms: Room[]; corridor: [number, number, number, number]; stairs: [number, number] };
 type Building = { id: string; name: string; kind: string; pos: [number, number, number, number]; floors: Floor[] };
 

@@ -32,7 +32,7 @@ function Reports() {
               <p className="text-sm text-muted-foreground">{r.loc}</p>
               <span className="ml-auto font-mono text-xs text-muted-foreground">{r.id}</span>
             </div>
-            <Pipeline stage={r.stage} waiting={r.waiting} />
+            <Pipeline stage={r.stage} waiting={!!r.waiting} />
           </div>
         ))}
       </div>
