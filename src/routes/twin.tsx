@@ -1,114 +1,640 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  ChevronRight,
+  DoorOpen,
+  Layers3,
+  Map,
+  Sparkles,
+  TriangleAlert,
+  Users,
+  Zap,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/vyra/shell";
+import {
+  DEMO_CAMPUS,
+  type Building,
+  type Campus,
+  type Floor,
+  type Room,
+} from "../lib/campus-data";
 
 export const Route = createFileRoute("/twin")({
   head: () => ({
     meta: [
       { title: "Campus Digital Twin — VYRA" },
-      { name: "description", content: "Explore every building, floor and room of the campus in VYRA's digital twin." },
-      { property: "og:title", content: "Campus Digital Twin — VYRA" },
-      { property: "og:description", content: "Interactive campus buildings, floors and rooms." },
+      {
+        name: "description",
+        content:
+          "Explore every building, floor and room of the campus in VYRA's digital twin.",
+      },
+      {
+        property: "og:title",
+        content: "Campus Digital Twin — VYRA",
+      },
+      {
+        property: "og:description",
+        content: "Interactive campus buildings, floors and rooms.",
+      },
     ],
   }),
   component: Twin,
 });
 
-type Room = { id: string; name: string; x: number; y: number; w: number; h: number; status?: "issue" | "waste" | undefined };
-type Floor = { id: string; name: string; rooms: Room[]; corridor: [number, number, number, number]; stairs: [number, number] };
-type Building = { id: string; name: string; kind: string; pos: [number, number, number, number]; floors: Floor[] };
+const CAMPUS_STORAGE_KEY = "vyra-campus-config";
 
-const BUILDINGS: Building[] = [
-  { id: "B-AUR", name: "Aurora Block", kind: "Academic", pos: [40, 40, 220, 120], floors: [
-    { id: "AUR-F0", name: "Ground", corridor: [0, 45, 100, 10], stairs: [92, 2], rooms: [
-      { id: "AUR-001", name: "Reception", x: 0, y: 0, w: 30, h: 44 }, { id: "AUR-002", name: "Seminar Hall", x: 31, y: 0, w: 60, h: 44 },
-      { id: "AUR-003", name: "Cafeteria", x: 0, y: 56, w: 55, h: 44 }, { id: "AUR-004", name: "Store", x: 56, y: 56, w: 44, h: 44 } ] },
-    { id: "AUR-F2", name: "Floor 2", corridor: [0, 45, 100, 10], stairs: [92, 2], rooms: [
-      { id: "AUR-201", name: "201", x: 0, y: 0, w: 22, h: 44 }, { id: "AUR-202", name: "202", x: 23, y: 0, w: 22, h: 44 },
-      { id: "AUR-203", name: "203", x: 46, y: 0, w: 22, h: 44 }, { id: "AUR-204", name: "204", x: 69, y: 0, w: 22, h: 44, status: "waste" },
-      { id: "AUR-205", name: "Faculty", x: 0, y: 56, w: 40, h: 44 }, { id: "AUR-206", name: "206", x: 41, y: 56, w: 30, h: 44, status: "issue" }, { id: "AUR-207", name: "WC", x: 72, y: 56, w: 28, h: 44 } ] },
-  ] },
-  { id: "B-BAN", name: "Banyan Block", kind: "Labs", pos: [300, 30, 160, 170], floors: [
-    { id: "BAN-F1", name: "Floor 1", corridor: [45, 0, 10, 100], stairs: [46, 90], rooms: [
-      { id: "BAN-101", name: "Physics", x: 0, y: 0, w: 44, h: 32 }, { id: "BAN-102", name: "Chem", x: 0, y: 33, w: 44, h: 32 },
-      { id: "BAN-103", name: "Bio", x: 0, y: 66, w: 44, h: 34 }, { id: "BAN-105", name: "CS Lab 105", x: 56, y: 0, w: 44, h: 60, status: "issue" }, { id: "BAN-106", name: "Server", x: 56, y: 61, w: 44, h: 39 } ] },
-  ] },
-  { id: "B-CED", name: "Cedar Library", kind: "Library", pos: [60, 200, 180, 110], floors: [
-    { id: "CED-F0", name: "Ground", corridor: [0, 80, 100, 8], stairs: [2, 90], rooms: [
-      { id: "CED-RH", name: "Reading Hall", x: 0, y: 0, w: 70, h: 78 }, { id: "CED-ST", name: "Stacks", x: 71, y: 0, w: 29, h: 78 } ] },
-  ] },
-  { id: "B-DEL", name: "Delta Hostel", kind: "Residential", pos: [300, 230, 180, 90], floors: [
-    { id: "DEL-F3", name: "Floor 3", corridor: [0, 42, 100, 14], stairs: [0, 44], rooms: Array.from({ length: 8 }, (_, i) => ({
-      id: `DEL-3${String(i + 1).padStart(2, "0")}`, name: `3${String(i + 1).padStart(2, "0")}`, x: (i % 4) * 25, y: i < 4 ? 0 : 58, w: 24, h: 42,
-      status: i === 5 ? ("waste" as const) : undefined })) },
-  ] },
-];
+function loadCampus(): Campus {
+  if (typeof window === "undefined") {
+    return DEMO_CAMPUS;
+  }
 
-const fill = (s?: string) => (s === "waste" ? "var(--warning)" : s === "issue" ? "var(--destructive)" : "var(--glass-2)");
+  try {
+    const stored = localStorage.getItem(CAMPUS_STORAGE_KEY);
+
+    if (!stored) {
+      return DEMO_CAMPUS;
+    }
+
+    const parsed = JSON.parse(stored) as Campus;
+
+    if (
+      !parsed ||
+      !Array.isArray(parsed.buildings) ||
+      parsed.buildings.length === 0
+    ) {
+      return DEMO_CAMPUS;
+    }
+
+    return parsed;
+  } catch {
+    return DEMO_CAMPUS;
+  }
+}
 
 function Twin() {
-  const [b, setB] = useState<Building | null>(null);
-  const [f, setF] = useState(0);
-  const [room, setRoom] = useState<Room | null>(null);
+  const [campus] = useState<Campus>(() => loadCampus());
+  const [selectedBuilding, setSelectedBuilding] =
+    useState<Building | null>(null);
+  const [selectedFloorIndex, setSelectedFloorIndex] = useState(0);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
-  if (!b)
+  const stats = useMemo(() => {
+    const buildings = campus.buildings ?? [];
+
+    const floors = buildings.reduce(
+      (total, building) => total + building.floors.length,
+      0
+    );
+
+    const rooms = buildings.reduce(
+      (total, building) =>
+        total +
+        building.floors.reduce(
+          (floorTotal, floor) => floorTotal + floor.rooms.length,
+          0
+        ),
+      0
+    );
+
+    return {
+      buildings: buildings.length,
+      floors,
+      rooms,
+    };
+  }, [campus]);
+
+  function openBuilding(building: Building) {
+    setSelectedBuilding(building);
+    setSelectedFloorIndex(0);
+    setSelectedRoom(null);
+  }
+
+  function closeBuilding() {
+    setSelectedBuilding(null);
+    setSelectedRoom(null);
+  }
+
+  if (!selectedBuilding) {
     return (
-      <div className="mx-auto max-w-5xl">
-        <PageHeader title="Campus Digital Twin" sub="Select a building to explore its floors and rooms." />
-        <div className="glass-1 rounded-[2rem] p-4">
-          <svg viewBox="0 0 520 340" className="w-full">
-            <path d="M 0 185 H 520 M 280 0 V 340" stroke="var(--border)" strokeWidth="14" strokeLinecap="round" />
-            {BUILDINGS.map((x) => {
-              const [px, py, w, h] = x.pos;
-              return (
-                <g key={x.id} onClick={() => { setB(x); setF(0); setRoom(null); }} className="cursor-pointer [&:hover_rect]:stroke-[var(--gold)]">
-                  <rect x={px} y={py} width={w} height={h} rx="16" fill="var(--glass-1)" stroke="var(--glass-edge)" strokeWidth="1.5" className="transition" />
-                  <text x={px + 14} y={py + 26} fontSize="13" fontWeight="600" fill="var(--foreground)">{x.name}</text>
-                  <text x={px + 14} y={py + 44} fontSize="10" fill="var(--muted-foreground)">{x.id} · {x.kind}</text>
-                </g>
-              );
-            })}
-          </svg>
+      <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 md:px-6 lg:px-8">
+        <PageHeader
+          title="Campus Digital Twin"
+          sub="Explore your campus structure, buildings, floors and rooms."
+        />
+
+        <section className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/75 p-5 shadow-xl backdrop-blur-2xl md:p-6">
+          <div className="pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full bg-yellow-300/15 blur-3xl dark:bg-yellow-300/10" />
+
+          <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-yellow-400/20 bg-yellow-300/10 text-yellow-700 dark:text-yellow-300">
+                  <Map size={18} />
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-yellow-600 dark:text-yellow-300">
+                    Live Campus Model
+                  </p>
+
+                  <h2 className="mt-0.5 text-lg font-semibold">
+                    {campus.name}
+                  </h2>
+                </div>
+              </div>
+
+              <p className="mt-3 max-w-2xl text-xs leading-5 text-muted-foreground">
+                This digital twin is generated from the campus structure
+                configured by the administrator. Buildings, floors and rooms
+                are not manually hard-coded into the visualization.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <MiniStat
+                icon={<Building2 size={14} />}
+                value={stats.buildings}
+                label="Buildings"
+              />
+
+              <MiniStat
+                icon={<Layers3 size={14} />}
+                value={stats.floors}
+                label="Floors"
+              />
+
+              <MiniStat
+                icon={<DoorOpen size={14} />}
+                value={stats.rooms}
+                label="Rooms"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] border border-border bg-card/70 p-4 shadow-lg backdrop-blur-xl md:p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Campus Layout
+              </p>
+
+              <h2 className="mt-1 text-lg font-semibold">
+                Select a building
+              </h2>
+            </div>
+
+            <div className="hidden items-center gap-2 text-[10px] text-muted-foreground sm:flex">
+              <Sparkles
+                size={13}
+                className="text-yellow-600 dark:text-yellow-300"
+              />
+              Automatically generated
+            </div>
+          </div>
+
+          <div
+            className="grid gap-3"
+            style={{
+              gridTemplateColumns:
+                campus.buildings.length <= 2
+                  ? "repeat(auto-fit, minmax(260px, 1fr))"
+                  : "repeat(auto-fit, minmax(220px, 1fr))",
+            }}
+          >
+            {campus.buildings.map((building, index) => (
+              <BuildingCard
+                key={building.id}
+                building={building}
+                index={index}
+                onClick={() => openBuilding(building)}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  const floor =
+    selectedBuilding.floors[selectedFloorIndex] ??
+    selectedBuilding.floors[0];
+
+  if (!floor) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-5">
+        <PageHeader
+          title={selectedBuilding.name}
+          sub="No floors have been configured for this building yet."
+          right={
+            <button
+              type="button"
+              onClick={closeBuilding}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft size={14} />
+              Campus
+            </button>
+          }
+        />
+
+        <div className="rounded-3xl border border-border bg-card/70 p-10 text-center shadow-lg backdrop-blur-xl">
+          <Layers3
+            size={30}
+            className="mx-auto text-muted-foreground/60"
+          />
+
+          <p className="mt-4 text-sm font-medium">
+            Floor structure not configured
+          </p>
+
+          <p className="mt-1 text-xs text-muted-foreground">
+            Add floors from the Campus Setup screen.
+          </p>
         </div>
       </div>
     );
+  }
 
-  const floor = b.floors[f] ?? b.floors[0]!;
   return (
-    <div className="mx-auto max-w-5xl">
-      <PageHeader title={b.name} sub={`${b.id} · ${b.kind}`} right={
-        <button onClick={() => setB(null)} className="glass-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"><ArrowLeft className="h-3.5 w-3.5" /> Campus</button>} />
-      <div className="mb-4 flex gap-2">
-        {b.floors.map((fl, i) => (
-          <button key={fl.id} onClick={() => { setF(i); setRoom(null); }} className={`rounded-full px-4 py-1.5 text-sm transition ${i === f ? "bg-gold font-medium text-primary-foreground" : "glass-3"}`}>{fl.name}</button>
+    <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 md:px-6 lg:px-8">
+      <PageHeader
+        title={selectedBuilding.name}
+        sub={`${selectedBuilding.code} · ${
+          selectedBuilding.description || "Campus building"
+        }`}
+        right={
+          <button
+            type="button"
+            onClick={closeBuilding}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft size={14} />
+            Campus
+          </button>
+        }
+      />
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        <MiniStat
+          icon={<Building2 size={15} />}
+          value={selectedBuilding.floors.length}
+          label="Floors"
+        />
+
+        <MiniStat
+          icon={<DoorOpen size={15} />}
+          value={selectedBuilding.floors.reduce(
+            (total, currentFloor) => total + currentFloor.rooms.length,
+            0
+          )}
+          label="Rooms"
+        />
+
+        <MiniStat
+          icon={<Users size={15} />}
+          value={selectedBuilding.floors.reduce(
+            (total, currentFloor) =>
+              total +
+              currentFloor.rooms.reduce(
+                (roomTotal, room) => roomTotal + room.capacity,
+                0
+              ),
+            0
+          )}
+          label="Capacity"
+        />
+      </section>
+
+      <section className="flex gap-2 overflow-x-auto pb-1">
+        {selectedBuilding.floors.map((currentFloor, index) => (
+          <button
+            key={currentFloor.id}
+            type="button"
+            onClick={() => {
+              setSelectedFloorIndex(index);
+              setSelectedRoom(null);
+            }}
+            className={`shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition ${
+              index === selectedFloorIndex
+                ? "border-yellow-400/40 bg-yellow-300/15 text-yellow-700 dark:text-yellow-200"
+                : "border-border bg-card/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            {currentFloor.name}
+          </button>
         ))}
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">
-        <div className="glass-1 rounded-[2rem] p-5">
-          <svg viewBox="-2 -2 104 104" className="w-full">
-            <rect x={floor.corridor[0]} y={floor.corridor[1]} width={floor.corridor[2]} height={floor.corridor[3]} fill="var(--muted)" rx="1" />
-            {floor.rooms.map((r) => (
-              <g key={r.id} onClick={() => setRoom(r)} className="cursor-pointer">
-                <rect x={r.x} y={r.y} width={r.w} height={r.h} rx="2" fill={fill(r.status)} fillOpacity={r.status ? 0.35 : 1}
-                  stroke={room?.id === r.id ? "var(--gold-deep)" : "var(--glass-edge)"} strokeWidth={room?.id === r.id ? 0.8 : 0.3} />
-                <text x={r.x + r.w / 2} y={r.y + r.h / 2} fontSize="3.2" textAnchor="middle" fill="var(--foreground)">{r.name}</text>
-              </g>
-            ))}
-            <rect x={floor.stairs[0]} y={floor.stairs[1]} width="6" height="6" fill="var(--gold)" rx="1" />
-          </svg>
-          <p className="mt-2 text-xs text-muted-foreground">Floor ID {floor.id} · gold square = stairs · grey band = corridor</p>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="rounded-[2rem] border border-border bg-card/70 p-4 shadow-lg backdrop-blur-xl md:p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Floor Plan
+              </p>
+
+              <h2 className="mt-1 text-lg font-semibold">
+                {floor.name}
+              </h2>
+            </div>
+
+            <span className="rounded-full border border-border bg-muted/50 px-3 py-1 text-[9px] text-muted-foreground">
+              {floor.rooms.length} rooms
+            </span>
+          </div>
+
+          <DynamicFloorPlan
+            floor={floor}
+            selectedRoom={selectedRoom}
+            onSelectRoom={setSelectedRoom}
+          />
+
+          <p className="mt-4 text-[10px] leading-5 text-muted-foreground">
+            Select any room to view its details. Room positions are generated
+            automatically from the configured room structure.
+          </p>
         </div>
-        <div className="glass-2 rounded-3xl p-5 text-sm">
-          {room ? (
-            <>
-              <p className="font-mono text-xs text-muted-foreground">{room.id}</p>
-              <p className="mt-1 text-lg font-semibold">{room.name}</p>
-              <p className="mt-3 text-muted-foreground">{room.status === "waste" ? "Energy wastage detected — light on, room empty." : room.status === "issue" ? "1 open maintenance report." : "All clear."}</p>
-            </>
-          ) : <p className="text-muted-foreground">Select a room to see its status.</p>}
+
+        <RoomDetails room={selectedRoom} />
+      </section>
+    </div>
+  );
+}
+
+function BuildingCard({
+  building,
+  index,
+  onClick,
+}: {
+  building: Building;
+  index: number;
+  onClick: () => void;
+}) {
+  const roomCount = building.floors.reduce(
+    (total, floor) => total + floor.rooms.length,
+    0
+  );
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative overflow-hidden rounded-3xl border border-border bg-card/70 p-5 text-left shadow-lg backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-yellow-400/30 hover:bg-card"
+    >
+      <div
+        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-yellow-300/10 blur-3xl"
+        style={{
+          opacity: 0.35 + (index % 3) * 0.15,
+        }}
+      />
+
+      <div className="relative">
+        <div className="flex items-start justify-between">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-yellow-400/20 bg-yellow-300/10 text-yellow-700 dark:text-yellow-300">
+            <Building2 size={18} />
+          </div>
+
+          <ChevronRight
+            size={17}
+            className="text-muted-foreground/50 transition group-hover:translate-x-1 group-hover:text-foreground"
+          />
+        </div>
+
+        <h3 className="mt-5 text-base font-semibold">
+          {building.name}
+        </h3>
+
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          {building.code}
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-[9px] text-muted-foreground">
+            {building.floors.length} floors
+          </span>
+
+          <span className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-[9px] text-muted-foreground">
+            {roomCount} rooms
+          </span>
         </div>
       </div>
+    </button>
+  );
+}
+
+function DynamicFloorPlan({
+  floor,
+  selectedRoom,
+  onSelectRoom,
+}: {
+  floor: Floor;
+  selectedRoom: Room | null;
+  onSelectRoom: (room: Room) => void;
+}) {
+  const rooms = floor.rooms;
+
+  if (rooms.length === 0) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center rounded-3xl border border-dashed border-border bg-muted/20">
+        <div className="text-center">
+          <DoorOpen
+            size={28}
+            className="mx-auto text-muted-foreground/50"
+          />
+
+          <p className="mt-3 text-sm font-medium">
+            No rooms configured
+          </p>
+
+          <p className="mt-1 text-xs text-muted-foreground">
+            Add rooms through Campus Setup.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const columns = Math.min(
+    Math.max(Math.ceil(Math.sqrt(rooms.length)), 2),
+    6
+  );
+
+  return (
+    <div
+      className="grid gap-2 rounded-3xl border border-border bg-muted/20 p-3 md:p-5"
+      style={{
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+      }}
+    >
+      {rooms.map((room, index) => {
+        const selected = selectedRoom?.id === room.id;
+
+        return (
+          <button
+            type="button"
+            key={room.id}
+            onClick={() => onSelectRoom(room)}
+            className={`group relative flex min-h-[82px] flex-col justify-between rounded-2xl border p-3 text-left transition ${
+              selected
+                ? "border-yellow-400/50 bg-yellow-300/15 shadow-[0_0_25px_rgba(250,204,21,0.10)]"
+                : "border-border bg-card/80 hover:border-yellow-400/25 hover:bg-card"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-mono text-[9px] text-muted-foreground">
+                {room.roomNumber}
+              </span>
+
+              {index % 7 === 3 && (
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              )}
+            </div>
+
+            <div>
+              <p className="line-clamp-2 text-[11px] font-medium">
+                {room.name}
+              </p>
+
+              <p className="mt-1 line-clamp-1 text-[8px] text-muted-foreground">
+                {room.type}
+              </p>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function RoomDetails({ room }: { room: Room | null }) {
+  if (!room) {
+    return (
+      <aside className="rounded-3xl border border-border bg-card/70 p-5 shadow-lg backdrop-blur-xl">
+        <div className="flex min-h-[240px] flex-col items-center justify-center text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-muted/50 text-muted-foreground">
+            <DoorOpen size={20} />
+          </div>
+
+          <p className="mt-4 text-sm font-medium">
+            Select a room
+          </p>
+
+          <p className="mt-1 max-w-[190px] text-xs leading-5 text-muted-foreground">
+            Room-level information will appear here.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="rounded-3xl border border-border bg-card/70 p-5 shadow-lg backdrop-blur-xl">
+      <p className="font-mono text-[10px] text-muted-foreground">
+        {room.id}
+      </p>
+
+      <h2 className="mt-1 text-lg font-semibold">
+        {room.name}
+      </h2>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="rounded-lg border border-yellow-400/20 bg-yellow-300/10 px-2.5 py-1 text-[9px] text-yellow-700 dark:text-yellow-200">
+          {room.type}
+        </span>
+
+        <span className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-[9px] text-muted-foreground">
+          {room.capacity} capacity
+        </span>
+      </div>
+
+      <div className="mt-5 space-y-2">
+        <RoomInfo
+          icon={<Users size={14} />}
+          label="Capacity"
+          value={`${room.capacity} people`}
+        />
+
+        <RoomInfo
+          icon={<Zap size={14} />}
+          label="Energy"
+          value="Awaiting live sensor data"
+        />
+
+        <RoomInfo
+          icon={<TriangleAlert size={14} />}
+          label="Maintenance"
+          value="No live issue data"
+        />
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-yellow-400/15 bg-yellow-300/[0.05] p-3">
+        <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+          <Sparkles size={14} />
+
+          <span className="text-[10px] font-semibold">
+            Digital Twin
+          </span>
+        </div>
+
+        <p className="mt-1 text-[10px] leading-5 text-muted-foreground">
+          This room is structurally connected to the campus data model.
+          Energy, occupancy, timetable and maintenance data can be connected
+          here later.
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function RoomInfo({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3">
+      <div className="text-muted-foreground">{icon}</div>
+
+      <div className="min-w-0">
+        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+
+        <p className="mt-0.5 text-[10px] font-medium">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card/65 px-3 py-3 backdrop-blur-xl">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        {icon}
+
+        <span className="text-[9px] uppercase tracking-wider">
+          {label}
+        </span>
+      </div>
+
+      <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
   );
 }
